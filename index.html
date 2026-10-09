@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>入院管理</title>
+<meta name="theme-color" content="#1f7a5a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="入院管理">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#fbfcfb; --surface:#ffffff; --ink:#16303f; --muted:#5d6f78; --line:#d6dfdb;
+  --accent:#1f7a5a; --accent-soft:#e1f0e9; --accent-ink:#ffffff;
+  --warn:#b8650a; --warn-soft:#fdf0dc; --crit:#c0392b; --crit-soft:#fbe6e3; --info:#2c5d8a; --info-soft:#e4edf6;
+  --shadow:0 10px 30px rgba(22,48,63,.18); --scrim:rgba(10,20,25,.45);
+  --f-ui:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#141e21; --surface:#1b272b; --ink:#e3ece8; --muted:#93a6ad; --line:#2c3b40;
+  --accent:#4fb98f; --accent-soft:#183a2e; --accent-ink:#0c1a14;
+  --warn:#e8a24a; --warn-soft:#3a2a12; --crit:#ef7466; --crit-soft:#3d1c19; --info:#7fb0dd; --info-soft:#18293a;
+  --shadow:0 10px 30px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.6); color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.appbar{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;border-bottom:1px solid var(--line)}
+.appbar h1{margin:0;font-size:19px;font-weight:900;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.back{border:0;background:none;font-size:26px;line-height:1;padding:0 6px 0 0;color:var(--accent)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;font-size:13px}
+.main{flex:1;padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 96px)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(env(safe-area-inset-bottom,0px) + 8px)}
+.tabbar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabbar button{border:0;background:none;font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;position:relative}
+.tabbar svg{width:24px;height:24px}
+.tabbar button[aria-current="page"]{color:var(--accent);font-weight:700}
+.tabbar .badge{position:absolute;top:0;left:calc(50% + 6px)}
+.badge{min-width:18px;height:18px;border-radius:9px;background:var(--crit);color:#fff;font-size:11px;line-height:18px;padding:0 5px;font-family:var(--f-num);display:inline-block;text-align:center}
+.sec{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:16px 2px 6px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12px;border-radius:6px;padding:2px 8px;font-weight:700;white-space:nowrap}
+.c-ok{background:var(--accent-soft);color:var(--accent)}.c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-crit{background:var(--crit-soft);color:var(--crit)}.c-info{background:var(--info-soft);color:var(--info)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.msg{padding:11px 13px;border-radius:12px;font-size:14px;margin:0 0 10px}
+.m-ok{background:var(--accent-soft);color:var(--accent)}.m-ng{background:var(--crit-soft);color:var(--crit)}.m-info{background:var(--warn-soft);color:var(--warn)}
+.loading{color:var(--muted);text-align:center;padding:40px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 82px);z-index:20;background:var(--ink);color:var(--bg);border-radius:12px;padding:11px 16px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+
+/* ログイン */
+.login{padding:calc(env(safe-area-inset-top,0px) + 40px) 20px 40px;max-width:480px;margin:0 auto}
+.login h1{font-size:26px;font-weight:900;margin:0}
+.login p{color:var(--muted);margin:4px 0 20px}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.names button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 10px;text-align:left}
+.names b{display:block;font-size:17px}
+.names span{font-size:12px;color:var(--muted)}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin:18px 0}
+.pin-dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink)}
+.pin-dots i.on{background:var(--ink)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto}
+.pad button{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:16px 0;font-size:24px;font-family:var(--f-num)}
+.pad button.ghost{border:0;background:none;font-size:15px;font-family:var(--f-ui);color:var(--muted)}
+
+/* 一覧 */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.summary div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.summary b{display:block;font-family:var(--f-num);font-size:22px;line-height:1.25}
+.summary span{font-size:11.5px;color:var(--muted)}
+.pt{width:100%;text-align:left;display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:8px}
+.pt .rm{font-family:var(--f-num);font-size:20px;font-weight:600;color:var(--muted);text-align:center;border-right:1px solid var(--line);align-self:stretch;display:flex;align-items:center;justify-content:center}
+.pt .nm{font-weight:900;font-size:17px}
+.pt .sub{font-size:12.5px;color:var(--muted);margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-rooms{font-size:13px;color:var(--muted);padding:6px 2px}
+
+/* 詳細 */
+.head{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.head .nm{font-weight:900;font-size:21px}
+.head .meta{font-size:12.5px;color:var(--muted)}
+.dx{margin-top:4px;font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;margin:12px 0 10px}
+.seg button{border:0;background:none;padding:8px 0;border-radius:8px;font-size:14px}
+.seg button[aria-selected="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:50px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tl .t{font-family:var(--f-num);font-weight:600;font-size:15px}
+.vals{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:14px}
+.vals span b{font-weight:400;color:var(--muted);font-size:11.5px;margin-right:3px}
+.memo{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.due{border:1px dashed var(--warn);background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:8px 11px;font-size:14px;margin-bottom:8px}
+.due.late{border-color:var(--crit);background:var(--crit-soft);color:var(--crit)}
+.fab{position:fixed;right:max(16px,calc(50% - 304px));bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:7;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;padding:14px 20px;box-shadow:var(--shadow)}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:0}
+.kv dt{color:var(--muted);font-size:12.5px}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.links{display:grid;gap:8px;margin-top:12px}
+.lnk{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:12px;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.lnk.day{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.lnk.night{background:var(--info);border-color:var(--info);color:#fff}
+.med{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px}
+.med .t{font-family:var(--f-num);font-weight:600}
+.med .d{font-size:12.5px;color:var(--muted)}
+.med .go{border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:10px 14px}
+.med .go:disabled{opacity:.5}
+.med .ok{font-size:12.5px;color:var(--accent);font-weight:700;text-align:right}
+.med.late{border-color:var(--crit)}
+
+/* 記録シート */
+.sheet{position:fixed;inset:0;z-index:30;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.panel{background:var(--bg);width:100%;max-width:640px;max-height:94%;overflow-y:auto;border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.panel h2{font-size:18px;margin:0}
+.grp{margin-top:12px}
+.grp p{margin:0 0 5px;font-size:13px;font-weight:700;color:var(--muted)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{flex:1 1 auto;min-width:58px;border:2px solid var(--line);background:var(--surface);border-radius:11px;padding:11px 6px;font-size:16px}
+.opt[aria-pressed="true"]{background:var(--info);border-color:var(--info);color:#fff;font-weight:700}
+textarea,input[type=text],input[type=number],select{width:100%;border:2px solid var(--line);border-radius:11px;padding:10px;background:var(--surface)}
+textarea{min-height:80px}
+.row{display:flex;gap:8px;align-items:center;margin-top:8px}.row span{font-size:13px;color:var(--muted);white-space:nowrap}
+.btns{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:14px}
+.btn{border:0;border-radius:12px;padding:14px;font-weight:700;font-size:16px}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.pri:disabled{opacity:.5}
+.btn.sub{background:var(--line);color:var(--ink)}
+.hint{font-size:12px;color:var(--muted);margin:5px 0 0}
+
+/* やること・申し送り */
+.task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:9px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:6px;width:100%;text-align:left}
+.task .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--line)}
+.task.done{opacity:.55}.task.done .box{background:var(--accent);border-color:var(--accent)}
+.task.late{border-color:var(--crit)}
+.task .r{font-family:var(--f-num);font-size:12px;color:var(--muted)}
+.hand{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.hand .h{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.hand p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(){
+"use strict";
+var API = "https://script.google.com/macros/s/AKfycby6TkGE9BzoXnl8KNizC9Kw8Jt4rpPLwHs5SrqjEguwWM-0O31orwnZlrsYiWFZhWnmcw/exec";
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} return null; }
+function nowHM(){ var d = new Date(); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
+function toMin(t){ var m = String(t || "").match(/^(\d{1,2}):(\d{2})$/); return m ? (+m[1]) * 60 + (+m[2]) : -1; }
+
+var S = {
+  token: ls("tok") || "", me: null, view: "list", room: "", tab: "経過",
+  rooms: null, at: "", patient: null, todo: null, hand: null,
+  staff: null, loginName: "", pin: "", loginErr: "", busy: false,
+  sheet: null, toast: ""
+};
+try { S.me = JSON.parse(ls("me") || "null"); } catch (e) {}
+var qRoom = (location.search.match(/[?&]room=([^&]+)/) || [])[1];
+if (qRoom) { S.view = "detail"; S.room = decodeURIComponent(qRoom); }
+
+function api(action, data){
+  var body = Object.assign({}, data || {}, { action: action, token: S.token });
+  return fetch(API, { method: "POST", body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (r && r.auth === false) { logout(true); throw new Error("ログインの期限が切れました。もう一度ログインしてください"); }
+      return r;
+    });
+}
+var tt;
+function toast(m){ S.toast = m; render(); clearTimeout(tt); tt = setTimeout(function(){ S.toast = ""; render(); }, 2600); }
+function fail(e){ S.busy = false; toast("通信できませんでした：" + (e && e.message ? e.message : e)); }
+
+/* ---------- ログイン ---------- */
+function vLogin(){
+  if (!S.staff) {
+    api("staff").then(function(r){ S.staff = r.staff || []; render(); }).catch(function(e){ S.staff = []; S.loginErr = "通信できませんでした。電波を確認して開き直してください"; render(); });
+    return '<div class="login"><h1>入院管理</h1><p>読み込み中…</p></div>';
+  }
+  var h = '<div class="login"><h1>入院管理</h1>';
+  if (!S.loginName) {
+    h += '<p>自分の名前を選んでください</p>';
+    if (S.loginErr) h += '<div class="msg m-ng">' + esc(S.loginErr) + '</div>';
+    if (!S.staff.length && !S.loginErr) h += '<div class="msg m-info">スタッフが登録されていません。院長に連絡してください。</div>';
+    h += '<div class="names">' + S.staff.map(function(s){ return '<button data-login="' + esc(s.name) + '"><b>' + esc(s.name) + '</b><span>' + esc(s.role) + '</span></button>'; }).join("") + '</div>';
+  } else {
+    h += '<p><b>' + esc(S.loginName) + '</b> さん、暗証番号を入れてください</p>';
+    if (S.loginErr) h += '<div class="msg m-ng">' + esc(S.loginErr) + '</div>';
+    h += '<div class="pin-dots">' + [0,1,2,3].map(function(i){ return '<i class="' + (i < S.pin.length ? "on" : "") + '"></i>'; }).join("") + '</div>';
+    h += '<div class="pad">' + ["1","2","3","4","5","6","7","8","9"].map(function(n){ return '<button data-pin="' + n + '">' + n + '</button>'; }).join("")
+      + '<button class="ghost" data-act="pinBack">名前を選び直す</button><button data-pin="0">0</button><button class="ghost" data-act="pinDel">1文字消す</button></div>';
+    if (S.busy) h += '<p style="text-align:center">確認中…</p>';
+  }
+  return h + '</div>';
+}
+function pinInput(n){
+  if (S.busy || S.pin.length >= 4) return;
+  S.pin += n; S.loginErr = ""; render();
+  if (S.pin.length === 4) {
+    S.busy = true; render();
+    api("login", { name: S.loginName, pin: S.pin }).then(function(r){
+      S.busy = false;
+      if (!r.ok) { S.pin = ""; S.loginErr = r.error || "ログインできませんでした"; render(); return; }
+      S.token = r.token; S.me = r.me; ls("tok", r.token); ls("me", JSON.stringify(r.me));
+      S.pin = ""; S.loginName = "";
+      go(S.view === "detail" && S.room ? "detail" : "list");
+    }).catch(function(e){ S.pin = ""; S.loginErr = "通信できませんでした"; S.busy = false; render(); });
+  }
+}
+function logout(silent){
+  if (!silent && S.token) api("logout").catch(function(){});
+  S.token = ""; S.me = null; ls("tok", null); ls("me", null);
+  S.rooms = S.patient = S.todo = S.hand = null; S.view = "list";
+  render();
+}
+
+/* ---------- 共通の枠 ---------- */
+var ICON = {
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>',
+  todo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7l2 2 4-4M4 15l2 2 4-4M13 7h7M13 15h7"/></svg>',
+  hand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>'
+};
+function lateTotal(){ var n = 0; (S.rooms || []).forEach(function(r){ n += (r.medLate || 0) + (r.recLate ? 1 : 0); }); return n; }
+function frame(title, body, opt){
+  opt = opt || {};
+  var h = '<div class="app"><header class="appbar">' + (opt.back ? '<button class="back" data-go="list" aria-label="入院一覧へ戻る">‹</button>' : '')
+    + '<h1>' + esc(title) + '</h1>' + (opt.right || '') + '</header><main class="main">' + body + '</main></div>';
+  if (opt.fab) h += '<button class="fab" data-act="openRec">＋ 記録</button>';
+  var tabs = [["list","入院一覧"],["todo","やること"],["hand","申し送り"],["me","自分"]];
+  h += '<nav class="tabbar"><div class="in">' + tabs.map(function(t){
+    var cur = S.view === t[0] || (t[0] === "list" && S.view === "detail");
+    var b = t[0] === "todo" && lateTotal() ? '<span class="badge">' + lateTotal() + '</span>' : '';
+    return '<button data-go="' + t[0] + '"' + (cur ? ' aria-current="page"' : '') + '>' + ICON[t[0]] + t[1] + b + '</button>';
+  }).join("") + '</div></nav>';
+  return h;
+}
+var REFRESH = '<button class="icon-btn" data-act="refresh">更新</button>';
+
+/* ---------- 入院一覧 ---------- */
+function loadList(){ return api("list").then(function(r){ if (!r.ok) throw new Error(r.error); S.rooms = r.rooms; S.at = r.at; render(); }); }
+function isOcc(r){ return !!(r.name || r.dayUrl || r.nightUrl || r.nextUrl); }
+function vList(){
+  if (!S.rooms) { loadList().catch(fail); return frame("入院一覧", '<div class="loading">読み込み中…</div>', { right: REFRESH }); }
+  var occ = S.rooms.filter(isOcc), empty = S.rooms.filter(function(r){ return !isOcc(r); });
+  var medLate = 0, recDue = 0;
+  occ.forEach(function(r){ medLate += r.medLate || 0; if (r.nextRec) recDue++; });
+  var h = '<div class="summary"><div><b>' + occ.length + '</b><span>入院中</span></div><div><b' + (medLate ? ' style="color:var(--crit)"' : '') + '>' + medLate + '</b><span>遅れている投薬</span></div><div><b>' + recDue + '</b><span>定時記録が残っている</span></div></div>';
+  h += '<p class="sec">入院中（' + esc(S.at) + ' 時点）</p>';
+  if (!occ.length) h += '<div class="msg m-info">入院中の患者はいません</div>';
+  occ.forEach(function(r){
+    var c = [];
+    if (!r.dayUrl) c.push(["c-warn","日中シートなし"]);
+    else if (!r.dayToday) c.push(["c-warn","本日のシート未作成"]);
+    if (r.medLate) c.push(["c-crit","投薬 遅れ" + r.medLate]);
+    else if (r.medPending) c.push(["c-info","投薬 残り" + r.medPending]);
+    if (r.nextRec) c.push([r.recLate ? "c-crit" : "c-warn", r.nextRec + " 記録" + (r.recLate ? " 遅れ" : "")]);
+    else if (r.dayToday) c.push(["c-ok","定時記録 済"]);
+    if (r.nextUrl) c.push(["c-info","明日分 作成済"]);
+    var hh = r.h || {}, sub = [hh.sp, hh.dx].filter(Boolean).join("・");
+    h += '<button class="pt" data-room="' + esc(r.room) + '"><div class="rm">' + esc(r.room) + '</div><div><div class="nm">' + esc(r.name || "（名前未登録）") + '</div>'
+      + (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '<div class="chips">' + c.map(function(x){ return '<span class="chip ' + x[0] + '">' + esc(x[1]) + '</span>'; }).join("") + '</div></div></button>';
+  });
+  if (empty.length) h += '<p class="sec">空室</p><div class="empty-rooms">' + empty.map(function(r){ return "部屋 " + esc(r.room); }).join("　") + '</div>';
+  return frame("入院一覧", h, { right: REFRESH });
+}
+
+/* ---------- 患者の詳細 ---------- */
+function loadPatient(){ return api("patient", { room: S.room }).then(function(r){ if (!r.ok) throw new Error(r.error); S.patient = r; render(); }); }
+var LABELS = ["元気","食欲","飲水","排尿","排便","嘔吐"];
+function vDetail(){
+  var p = S.patient;
+  if (!p || p.room !== S.room) { if (!S.busy) { S.busy = true; loadPatient().then(function(){ S.busy = false; }).catch(fail); } return frame("部屋 " + S.room, '<div class="loading">読み込み中…</div>', { back: true }); }
+  if (p.empty) return frame("部屋 " + p.room, '<div class="msg m-info">この部屋は空室です</div>', { back: true });
+  var hh = p.h || {};
+  var h = '<div class="head"><div class="nm">' + esc(p.name || "（名前未登録）") + '</div><div class="meta">' + esc([hh.sp, hh.kg, hh.doc ? "主治医 " + hh.doc : "", hh.chart ? "カルテ " + hh.chart : ""].filter(Boolean).join("・")) + '</div>'
+    + (hh.dx ? '<div class="dx">' + esc(hh.dx) + '</div>' : '') + '</div>';
+  if (!p.dayUrl) {
+    h += '<div class="msg m-info" style="margin-top:10px">日中の入院管理シートがまだありません。獣医師は「部屋のページ」から作成してください。</div>';
+    h += links(p);
+    return frame("部屋 " + p.room, h, { back: true });
+  }
+  if (p.stale) h += '<div class="msg m-ng" style="margin-top:10px">本日のシートがまだ作成されていません。' + esc(p.dayDate) + ' のシートを表示しています（記録もこのシートに入ります）。</div>';
+  var tabs = ["経過","指示","投薬"];
+  h += '<div class="seg" role="tablist">' + tabs.map(function(t){
+    var lateN = t === "投薬" ? (p.meds || []).filter(function(m){ return !(m.doneAt || m.doneBy) && toMin(m.time) >= 0 && toMin(m.time) + 30 < toMin(nowHM()); }).length : 0;
+    return '<button role="tab" data-tab="' + t + '" aria-selected="' + (S.tab === t) + '">' + t + (lateN ? ' <span class="badge">' + lateN + '</span>' : '') + '</button>';
+  }).join("") + '</div>';
+  if (S.tab === "経過") {
+    var next = (p.times || []).filter(function(x){ return !x.filled; })[0];
+    if (next && !p.stale) { var late = toMin(next.t) + 30 < toMin(nowHM()); h += '<div class="due' + (late ? ' late' : '') + '">次の定時記録：<span class="num">' + esc(next.t) + '</span>' + (late ? '（遅れています）' : '') + '</div>'; }
+    var recs = (p.recs || []).slice().reverse();
+    if (!recs.length) h += '<div class="msg m-info">記録はまだありません。右下の「＋ 記録」から入力できます。</div>';
+    else h += '<ul class="tl">' + recs.map(function(r){
+      var v = r.v.map(function(x, i){ return x ? '<span><b>' + LABELS[i] + '</b>' + esc(x) + '</span>' : ''; }).join("");
+      return '<li><div class="t">' + esc(r.t || "—") + '</div><div>' + (v ? '<div class="vals">' + v + '</div>' : '') + (r.m ? '<div class="memo">' + esc(r.m) + '</div>' : '') + '</div></li>';
+    }).join("") + '</ul>';
+  } else if (S.tab === "指示") {
+    h += (p.inst && p.inst.length) ? '<dl class="kv">' + p.inst.map(function(x){ return '<dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd>'; }).join("") + '</dl>' : '<div class="msg m-info">指示が読み取れませんでした。シートを開いて確認してください。</div>';
+    h += links(p);
+  } else {
+    if (!(p.meds || []).length) h += '<div class="msg m-info">投薬指示はありません</div>';
+    (p.meds || []).forEach(function(m){
+      var done = m.doneAt || m.doneBy, late = !done && toMin(m.time) >= 0 && toMin(m.time) + 30 < toMin(nowHM());
+      h += '<div class="med' + (late ? ' late' : '') + '"><div class="t">' + esc(m.time) + '</div><div><div>' + esc(m.drug) + '</div><div class="d">' + esc([m.dose, m.route].filter(Boolean).join("・")) + (late ? '・<b style="color:var(--crit)">予定時刻を過ぎています</b>' : '') + '</div></div>'
+        + (done ? '<div class="ok">✓ ' + esc((m.doneAt + " " + m.doneBy).trim()) + '</div>' : '<button class="go" data-med="' + m.idx + '"' + (S.busy ? ' disabled' : '') + '>実施</button>') + '</div>';
+    });
+    if ((p.meds || []).length) h += '<p class="hint">「実施」を押すと、今の時刻とあなたの名前がシートの投薬表に入ります。</p>';
+  }
+  return frame("部屋 " + p.room, h, { back: true, fab: S.tab === "経過", right: REFRESH });
+}
+function links(p){
+  var h = '<div class="links">';
+  if (p.dayUrl) h += '<a class="lnk day" href="' + esc(p.dayUrl) + '" target="_blank" rel="noopener">入院管理シートを開く</a>';
+  if (p.nightUrl) h += '<a class="lnk night" href="' + esc(p.nightUrl) + '" target="_blank" rel="noopener">夜間指示書を開く（' + esc(p.nightAt) + '）</a>';
+  if (p.nextUrl) h += '<a class="lnk" href="' + esc(p.nextUrl) + '" target="_blank" rel="noopener">明日分のシートを開く</a>';
+  h += '<a class="lnk" href="' + esc(p.roomPage) + '" target="_blank" rel="noopener">部屋のページ（シート作成・獣医師用）</a>';
+  return h + '</div>';
+}
+function doMed(idx){
+  S.busy = true; render();
+  api("med", { room: S.room, idx: idx }).then(function(r){
+    S.busy = false;
+    if (!r.ok) { toast(r.error || r.msg || "記録できませんでした"); return; }
+    S.patient = r; S.rooms = null; toast(r.msg || "記録しました");
+  }).catch(fail);
+}
+
+/* ---------- 状態記録 ---------- */
+var G = [["元気",["◎","○","△","×"]],["食欲",["完食","3/4","1/2","1/4","0","絶食"]],["飲水",["＋","－"]],["排尿",["＋","－"]],["排便",["－","＋正常","＋軟便","＋下痢"]],["嘔吐",["－","＋1回","＋2回","＋3回以上"]]];
+function openRec(){
+  var p = S.patient, now = nowHM(), nm = toMin(now), best = "", bd = 91;
+  var opts = (p.times || []).filter(function(x){ return !x.filled; }).map(function(x){ var d = Math.abs(toMin(x.t) - nm); if (d < bd) { bd = d; best = x.t; } return x.t; });
+  S.sheet = { times: opts, time: best || now, now: now, pick: {}, memo: "", ml: "" };
+  render();
+}
+function vSheet(){
+  var s = S.sheet, p = S.patient;
+  var h = '<div class="sheet" data-act="sheetBg"><div class="panel" role="dialog" aria-label="状態を記録"><h2>' + esc(p.name) + ' の状態を記録</h2>';
+  h += '<div class="grp"><p>時刻</p><div class="opts">' + s.times.concat([s.now]).map(function(t, i){ var label = i === s.times.length ? "今（" + t + "）" : t; return '<button class="opt" data-time="' + esc(t) + '" aria-pressed="' + (s.time === t) + '">' + label + '</button>'; }).join("") + '</div><p class="hint">定時の記録は時刻を、臨時の記録は「今」を選んでください</p></div>';
+  G.forEach(function(g){
+    h += '<div class="grp"><p>' + g[0] + '</p><div class="opts">' + g[1].map(function(o){ return '<button class="opt" data-g="' + g[0] + '" data-v="' + esc(o) + '" aria-pressed="' + (s.pick[g[0]] === o) + '">' + esc(o) + '</button>'; }).join("") + '</div>';
+    if (g[0] === "排尿") h += '<div class="row"><span>尿量（測定時）</span><input type="number" id="ml" inputmode="numeric" placeholder="mL" value="' + esc(s.ml) + '"></div>';
+    h += '</div>';
+  });
+  h += '<div class="grp"><p>処置・ケア／特記事項</p><textarea id="memo" placeholder="キーボードのマイクで音声入力できます">' + esc(s.memo) + '</textarea></div>';
+  h += '<p class="hint">記録者：' + esc(S.me ? S.me.name : "") + '（自動）</p>';
+  h += '<div class="btns"><button class="btn sub" data-act="closeRec">やめる</button><button class="btn pri" data-act="saveRec"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? "保存中…" : "記録する") + '</button></div></div></div>';
+  return h;
+}
+function keepSheetInputs(){ if (!S.sheet) return; if ($("memo")) S.sheet.memo = $("memo").value; if ($("ml")) S.sheet.ml = $("ml").value; }
+function saveRec(){
+  keepSheetInputs();
+  var s = S.sheet, vals = G.map(function(g){ return s.pick[g[0]] || ""; });
+  if (s.ml) vals[3] = (vals[3] || "＋") + s.ml + "mL";
+  if (!vals.join("") && !s.memo.trim()) { toast("記録する項目を1つ以上選んでください"); return; }
+  S.busy = true; render();
+  api("record", { room: S.room, time: s.time, vals: vals, memo: s.memo.trim() }).then(function(r){
+    S.busy = false;
+    if (!r.ok) { toast(r.error || r.msg || "記録できませんでした"); return; }
+    S.patient = r; S.sheet = null; S.rooms = null; S.tab = "経過"; toast(r.msg || "記録しました");
+  }).catch(fail);
+}
+
+/* ---------- やること ---------- */
+function loadTodo(){ return api("todo").then(function(r){ if (!r.ok) throw new Error(r.error); S.todo = r; render(); }); }
+function vTodo(){
+  if (!S.todo) { loadTodo().catch(fail); return frame("やること", '<div class="loading">読み込み中…</div>', { right: REFRESH }); }
+  var items = S.todo.items, h = "";
+  var left = items.filter(function(x){ return !x.done; }).length;
+  h += '<p class="sec">今日の残り ' + left + ' 件（' + esc(S.todo.now) + ' 時点）</p>';
+  if (!items.length) h += '<div class="msg m-info">今日の予定はありません（本日の入院管理シートがある患者だけが対象です）</div>';
+  var last = null;
+  items.forEach(function(x){
+    if (x.t !== last) { h += '<p class="sec num">' + esc(x.t || "時刻なし") + '</p>'; last = x.t; }
+    h += '<button class="task' + (x.done ? ' done' : '') + (x.late ? ' late' : '') + '" data-room="' + esc(x.room) + '" data-tabgo="' + (x.kind === "投薬" ? "投薬" : "経過") + '"><span class="box"></span><span><b>' + esc(x.name) + '</b> ' + esc(x.text)
+      + (x.late ? ' <span class="chip c-crit">遅れ</span>' : '') + (x.by ? ' <span class="chip c-ok">' + esc(x.by) + '</span>' : '') + '</span><span class="r">部屋' + esc(x.room) + '</span></button>';
+  });
+  return frame("やること", h, { right: REFRESH });
+}
+
+/* ---------- 申し送り ---------- */
+function loadHand(){ return api("hand").then(function(r){ if (!r.ok) throw new Error(r.error); S.hand = r.items; render(); }); }
+var handDraft = { text: "", room: "" };
+function vHand(){
+  var h = '<div class="card"><label class="sec" for="handTxt" style="display:block;margin-top:0">新しい申し送り</label><textarea id="handTxt" placeholder="次のスタッフへ伝えること（マイクで音声入力できます）">' + esc(handDraft.text) + '</textarea>'
+    + '<div class="row"><span>部屋</span><select id="handRoom"><option value="">全体</option>' + (S.rooms || []).filter(isOcc).map(function(r){ return '<option value="' + esc(r.room) + '"' + (handDraft.room === r.room ? " selected" : "") + '>部屋 ' + esc(r.room) + '　' + esc(r.name) + '</option>'; }).join("") + '</select></div>'
+    + '<div class="btns"><span></span><button class="btn pri" data-act="sendHand"' + (S.busy ? " disabled" : "") + '>' + (S.busy ? "送信中…" : "送る") + '</button></div></div>';
+  if (!S.hand) { loadHand().catch(fail); h += '<div class="loading">読み込み中…</div>'; }
+  else {
+    h += '<p class="sec">最近2日間</p>';
+    if (!S.hand.length) h += '<div class="msg m-info">申し送りはまだありません</div>';
+    S.hand.forEach(function(x){ h += '<div class="hand"><div class="h"><span>' + esc(x.by) + (x.room ? '・部屋 ' + esc(x.room) : '') + '</span><span class="num">' + esc(x.at) + '</span></div><p>' + esc(x.text) + '</p></div>'; });
+  }
+  if (!S.rooms) loadList().catch(function(){});
+  return frame("申し送り", h, { right: REFRESH });
+}
+function sendHand(){
+  handDraft.text = $("handTxt").value; handDraft.room = $("handRoom").value;
+  if (!handDraft.text.trim()) { toast("伝える内容を入力してください"); return; }
+  S.busy = true; render();
+  api("handAdd", { text: handDraft.text, room: handDraft.room }).then(function(r){
+    S.busy = false;
+    if (!r.ok) { toast(r.error || "送れませんでした"); return; }
+    S.hand = r.items; handDraft = { text: "", room: "" }; toast(r.msg || "送りました");
+  }).catch(fail);
+}
+
+/* ---------- 自分 ---------- */
+function vMe(){
+  var h = '<dl class="kv"><dt>ログイン中</dt><dd>' + esc(S.me.name) + '（' + esc(S.me.role || "スタッフ") + '）</dd></dl>';
+  h += '<div class="links"><a class="lnk" href="' + API + '" target="_blank" rel="noopener">入院患者一覧（退院・部屋の移動）</a></div>';
+  h += '<div class="card" style="margin-top:12px"><b>ホーム画面に追加すると便利です</b><p class="hint" style="font-size:13px">iPhone・iPad：Safari の共有ボタン →「ホーム画面に追加」<br>Android：Chrome のメニュー →「ホーム画面に追加」</p></div>';
+  h += '<div class="links"><button class="btn sub" data-act="logout">ログアウト</button></div>';
+  return frame("自分", h);
+}
+
+/* ---------- 画面の切り替え ---------- */
+function go(v){ S.view = v; S.sheet = null; if (v === "list") S.rooms = S.rooms; window.scrollTo(0, 0); render(); }
+function render(){
+  var h;
+  if (!S.token || !S.me) h = vLogin();
+  else {
+    var V = { list: vList, detail: vDetail, todo: vTodo, hand: vHand, me: vMe };
+    h = (V[S.view] || vList)();
+    if (S.sheet && S.view === "detail") h += vSheet();
+  }
+  if (S.toast) h += '<div class="toast" role="status">' + esc(S.toast) + '</div>';
+  var y = window.scrollY, panel = document.querySelector(".panel"), py = panel ? panel.scrollTop : 0;
+  $("root").innerHTML = h;
+  window.scrollTo(0, y);
+  var np = document.querySelector(".panel"); if (np) np.scrollTop = py;
+}
+document.addEventListener("click", function(e){
+  var b = e.target.closest("button,[data-act]");
+  if (!b) return;
+  var d = b.dataset;
+  if (d.act === "sheetBg" && e.target !== b) return;
+  if (d.login) { S.loginName = d.login; S.pin = ""; S.loginErr = ""; render(); return; }
+  if (d.pin) { pinInput(d.pin); return; }
+  if (d.go) { if (d.go === "list") S.rooms = S.rooms; go(d.go); if (d.go === "todo") { S.todo = null; render(); } if (d.go === "hand") { S.hand = null; render(); } return; }
+  if (d.room) { S.room = d.room; S.patient = null; S.tab = d.tabgo || "経過"; history.replaceState(null, "", "?room=" + encodeURIComponent(d.room)); go("detail"); return; }
+  if (d.tab) { S.tab = d.tab; render(); return; }
+  if (d.med) { doMed(+d.med); return; }
+  if (d.time) { keepSheetInputs(); S.sheet.time = d.time; render(); return; }
+  if (d.g) { keepSheetInputs(); var s = S.sheet; s.pick[d.g] = s.pick[d.g] === d.v ? undefined : d.v; render(); return; }
+  switch (d.act) {
+    case "pinBack": S.loginName = ""; S.pin = ""; S.loginErr = ""; render(); break;
+    case "pinDel": S.pin = S.pin.slice(0, -1); render(); break;
+    case "refresh": refresh(); break;
+    case "openRec": openRec(); break;
+    case "closeRec": case "sheetBg": keepSheetInputs(); S.sheet = null; render(); break;
+    case "saveRec": saveRec(); break;
+    case "sendHand": sendHand(); break;
+    case "logout": logout(false); break;
+  }
+});
+document.addEventListener("input", function(e){
+  if (e.target.id === "handTxt") handDraft.text = e.target.value;
+  if (e.target.id === "handRoom") handDraft.room = e.target.value;
+});
+function refresh(){
+  if (S.view === "list") { S.rooms = null; render(); }
+  else if (S.view === "detail") { S.patient = null; S.busy = false; render(); }
+  else if (S.view === "todo") { S.todo = null; render(); }
+  else if (S.view === "hand") { S.hand = null; render(); }
+}
+window.addEventListener("popstate", function(){ go("list"); });
+// 画面を開いたままでも1分ごとに最新に（入力中は更新しない）
+setInterval(function(){
+  if (document.hidden || !S.token || S.sheet || S.busy) return;
+  if (S.view === "list") loadList().catch(function(){});
+  else if (S.view === "todo") loadTodo().catch(function(){});
+}, 60000);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.token && !S.sheet) refresh(); });
+render();
+})();
+</script>
+</body>
+</html>
