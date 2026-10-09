@@ -103,7 +103,10 @@ button{cursor:pointer}
 .memo{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
 .due{border:1px dashed var(--warn);background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:8px 11px;font-size:14px;margin-bottom:8px}
 .due.late{border-color:var(--crit);background:var(--crit-soft);color:var(--crit)}
-.fab{position:fixed;right:max(16px,calc(50% - 304px));bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:7;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;padding:14px 20px;box-shadow:var(--shadow)}
+.fabs{position:fixed;right:max(16px,calc(50% - 304px));bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:7;display:flex;gap:10px}
+.fab{border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;padding:14px 20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px}
+.fab.alt{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.fab svg{width:20px;height:20px}
 .kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:0}
 .kv dt{color:var(--muted);font-size:12.5px}
 .kv dd{margin:0;overflow-wrap:anywhere}
@@ -146,11 +149,39 @@ textarea{min-height:80px}
 .hand{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .hand .h{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
 .hand p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.alerts{padding:8px 16px 0;display:grid;gap:6px}
+.al{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;border-radius:12px;padding:9px 11px;font-size:14px;border:1px solid var(--crit);background:var(--crit-soft);color:var(--crit)}
+.al.k-記録{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.al b{color:var(--ink)}
+.al .kd{font-size:11.5px;font-weight:700;border:1px solid currentColor;border-radius:5px;padding:0 5px;margin-right:4px}
+.al-b{display:flex;gap:6px}
+.al-b button{border:0;border-radius:9px;padding:7px 10px;font-weight:700;font-size:13px;background:var(--surface);color:var(--ink)}
+.al-b button.ok{background:var(--ink);color:var(--bg)}
+.al-more{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.al-more button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:5px 10px;font-size:13px}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:6px}
+.ph{position:relative;border:0;padding:0;border-radius:10px;overflow:hidden;background:var(--line);aspect-ratio:1/1}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-family:var(--f-num);font-size:11px;border-radius:5px;padding:0 5px}
+.preview{width:100%;max-height:46vh;object-fit:contain;border-radius:12px;background:#000;margin-top:10px;display:block}
+.viewer{position:fixed;inset:0;z-index:40;background:#000;display:flex;flex-direction:column;color:#fff}
+.viewer .vi{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer .vb{padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);display:grid;gap:8px;background:#111}
+.viewer .vm{font-size:14px}
+.viewer .vbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.viewer button{border:0;border-radius:12px;padding:12px;font-weight:700;font-size:15px;background:#333;color:#fff}
+.viewer button.del{background:#5a1f19;color:#ffb4a9}
+.switch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.switch:first-of-type{border-top:0}
+.switch button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.switch button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px}
 </style>
 </head>
 <body>
 <div id="root"></div>
+<input type="file" id="photoIn" accept="image/*" hidden>
 <script>
 (function(){
 "use strict";
@@ -165,8 +196,9 @@ var S = {
   token: ls("tok") || "", me: null, view: "list", room: "", tab: "経過",
   rooms: null, at: "", patient: null, todo: null, hand: null,
   staff: null, loginName: "", pin: "", loginErr: "", busy: false,
-  sheet: null, toast: ""
+  sheet: null, toast: "", alerts: [], photo: null, viewer: null
 };
+var CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 try { S.me = JSON.parse(ls("me") || "null"); } catch (e) {}
 var qRoom = (location.search.match(/[?&]room=([^&]+)/) || [])[1];
 if (qRoom) { S.view = "detail"; S.room = decodeURIComponent(qRoom); }
@@ -238,8 +270,8 @@ function lateTotal(){ var n = 0; (S.rooms || []).forEach(function(r){ n += (r.me
 function frame(title, body, opt){
   opt = opt || {};
   var h = '<div class="app"><header class="appbar">' + (opt.back ? '<button class="back" data-go="list" aria-label="入院一覧へ戻る">‹</button>' : '')
-    + '<h1>' + esc(title) + '</h1>' + (opt.right || '') + '</header><main class="main">' + body + '</main></div>';
-  if (opt.fab) h += '<button class="fab" data-act="openRec">＋ 記録</button>';
+    + '<h1>' + esc(title) + '</h1>' + (opt.right || '') + '</header>' + vAlerts() + '<main class="main">' + body + '</main></div>';
+  if (opt.fab) h += '<div class="fabs"><button class="fab alt" data-act="openPhoto">' + CAM + '写真</button><button class="fab" data-act="openRec">＋ 記録</button></div>';
   var tabs = [["list","入院一覧"],["todo","やること"],["hand","申し送り"],["me","自分"]];
   h += '<nav class="tabbar"><div class="in">' + tabs.map(function(t){
     var cur = S.view === t[0] || (t[0] === "list" && S.view === "detail");
@@ -251,7 +283,7 @@ function frame(title, body, opt){
 var REFRESH = '<button class="icon-btn" data-act="refresh">更新</button>';
 
 /* ---------- 入院一覧 ---------- */
-function loadList(){ return api("list").then(function(r){ if (!r.ok) throw new Error(r.error); S.rooms = r.rooms; S.at = r.at; render(); }); }
+function loadList(quiet){ return api("list").then(function(r){ if (!r.ok) throw new Error(r.error); S.rooms = r.rooms; S.at = r.at; S.alerts = r.alerts || []; checkAlerts(); quiet ? safeRender() : render(); }); }
 function isOcc(r){ return !!(r.name || r.dayUrl || r.nightUrl || r.nextUrl); }
 function vList(){
   if (!S.rooms) { loadList().catch(fail); return frame("入院一覧", '<div class="loading">読み込み中…</div>', { right: REFRESH }); }
@@ -302,8 +334,10 @@ function vDetail(){
   if (S.tab === "経過") {
     var next = (p.times || []).filter(function(x){ return !x.filled; })[0];
     if (next && !p.stale) { var late = toMin(next.t) + 30 < toMin(nowHM()); h += '<div class="due' + (late ? ' late' : '') + '">次の定時記録：<span class="num">' + esc(next.t) + '</span>' + (late ? '（遅れています）' : '') + '</div>'; }
+    var ph = p.photos || [];
+    if (ph.length) h += '<p class="sec">写真（' + ph.length + '）</p><div class="ph-grid">' + ph.slice().reverse().map(function(x){ return '<button class="ph" data-photo="' + esc(x.id) + '" aria-label="' + esc(x.t) + 'の写真を開く">' + (x.thumb ? '<img src="' + esc(x.thumb) + '" alt="">' : '') + '<span>' + esc(x.t) + '</span></button>'; }).join("") + '</div><p class="sec">経過</p>';
     var recs = (p.recs || []).slice().reverse();
-    if (!recs.length) h += '<div class="msg m-info">記録はまだありません。右下の「＋ 記録」から入力できます。</div>';
+    if (!recs.length) h += '<div class="msg m-info">記録はまだありません。右下の「＋ 記録」から入力できます。「写真」で写真も残せます。</div>';
     else h += '<ul class="tl">' + recs.map(function(r){
       var v = r.v.map(function(x, i){ return x ? '<span><b>' + LABELS[i] + '</b>' + esc(x) + '</span>' : ''; }).join("");
       return '<li><div class="t">' + esc(r.t || "—") + '</div><div>' + (v ? '<div class="vals">' + v + '</div>' : '') + (r.m ? '<div class="memo">' + esc(r.m) + '</div>' : '') + '</div></li>';
@@ -375,6 +409,136 @@ function saveRec(){
   }).catch(fail);
 }
 
+/* ---------- 写真 ---------- */
+function shrink(file, max, q){
+  return new Promise(function(ok, ng){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+      var c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok({ url: c.toDataURL("image/jpeg", q), w: c.width, h: c.height });
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); ng(new Error("この写真は読み込めませんでした")); };
+    img.src = url;
+  });
+}
+function openPhoto(){ var f = $("photoIn"); f.value = ""; f.click(); }
+$("photoIn").addEventListener("change", function(e){
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  toast("写真を準備しています…");
+  Promise.all([shrink(file, 1600, 0.8), shrink(file, 360, 0.6)]).then(function(a){
+    S.photo = { full: a[0], thumb: a[1].url, memo: "", time: nowHM() }; S.toast = ""; render();
+  }).catch(fail);
+});
+function vPhotoSheet(){
+  var s = S.photo, p = S.patient;
+  var h = '<div class="sheet" data-act="photoBg"><div class="panel" role="dialog" aria-label="写真を保存"><h2>' + esc(p.name) + ' の写真</h2>';
+  h += '<img class="preview" src="' + s.full.url + '" alt="撮った写真">';
+  h += '<div class="grp"><p>メモ（部位・状態など）</p><textarea id="pmemo" placeholder="例：左前肢の留置部、発赤なし">' + esc(s.memo) + '</textarea></div>';
+  h += '<p class="hint">' + esc(s.time) + '　撮影：' + esc(S.me ? S.me.name : "") + '　保存すると入院管理シートの最後にも小さく貼られます</p>';
+  h += '<div class="btns"><button class="btn sub" data-act="closePhoto">やめる</button><button class="btn pri" data-act="savePhoto"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? "保存中…" : "保存する") + '</button></div></div></div>';
+  return h;
+}
+function savePhoto(){
+  var s = S.photo; s.memo = $("pmemo") ? $("pmemo").value : s.memo;
+  S.busy = true; render();
+  api("photo", { room: S.room, full: s.full.url.split(",")[1], thumb: s.thumb, w: s.full.w, h: s.full.h, time: s.time, memo: s.memo.trim() }).then(function(r){
+    S.busy = false;
+    if (!r.ok) { toast(r.error || "保存できませんでした"); return; }
+    S.patient = r; S.photo = null; S.tab = "経過"; toast(r.msg || "写真を保存しました");
+  }).catch(fail);
+}
+var photoCache = {};
+function openViewer(id){
+  var x = (S.patient.photos || []).filter(function(p){ return p.id === id; })[0] || {};
+  S.viewer = { id: id, src: photoCache[id] || x.thumb || "", full: !!photoCache[id], meta: x, del: false }; render();
+  if (!photoCache[id]) api("photoGet", { id: id }).then(function(r){
+    if (!r.ok) { toast(r.error); return; }
+    photoCache[id] = r.src;
+    if (S.viewer && S.viewer.id === id) { S.viewer.src = r.src; S.viewer.full = true; render(); }
+  }).catch(fail);
+}
+function vViewer(){
+  var v = S.viewer, m = v.meta;
+  return '<div class="viewer" role="dialog" aria-label="写真"><div class="vi">' + (v.src ? '<img src="' + v.src + '" alt="">' : '') + '</div><div class="vb">'
+    + '<div class="vm"><b class="num">' + esc(m.t) + '</b>　撮影：' + esc(m.by) + (v.full ? '' : '　（読み込み中…）') + (m.memo ? '<br>' + esc(m.memo) : '') + '</div>'
+    + '<div class="vbtn"><button class="del" data-act="delPhoto"' + (S.busy ? ' disabled' : '') + '>' + (v.del ? "本当に削除する" : "削除") + '</button><button data-act="closeViewer">閉じる</button></div></div></div>';
+}
+function delPhoto(){
+  var v = S.viewer;
+  if (!v.del) { v.del = true; render(); return; }
+  S.busy = true; render();
+  api("photoDel", { id: v.id, room: S.room }).then(function(r){
+    S.busy = false;
+    if (!r.ok) { toast(r.error || "削除できませんでした"); return; }
+    S.patient = r; S.viewer = null; toast(r.msg || "削除しました");
+  }).catch(fail);
+}
+
+/* ---------- お知らせ ---------- */
+var KIND = { "投薬": "投薬の遅れ", "記録": "記録の遅れ", "状態": "状態に注意" };
+function today(){ var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function seenMap(){ var m = {}; try { m = JSON.parse(ls("seen") || "{}") || {}; } catch (e) {} return m; }
+function activeAlerts(){ var m = seenMap(); return (S.alerts || []).filter(function(a){ return !m[a.k]; }); }
+function markSeen(keys){
+  var m = seenMap(), t = today();
+  Object.keys(m).forEach(function(k){ if (k.split("|")[1] !== t) delete m[k]; });
+  keys.forEach(function(k){ m[k] = 1; });
+  ls("seen", JSON.stringify(m)); render();
+}
+var rung = {};
+function checkAlerts(){
+  var fresh = activeAlerts().filter(function(a){ return !rung[a.k]; });
+  if (!fresh.length) return;
+  fresh.forEach(function(a){ rung[a.k] = 1; });
+  if (ls("snd") !== "off") beep();
+  if (ls("vib") !== "off" && navigator.vibrate) { try { navigator.vibrate([250, 120, 250]); } catch (e) {} }
+  if (document.hidden) sysNotify(fresh);
+}
+var actx = null;
+document.addEventListener("pointerdown", function(){
+  try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); } catch (e) {}
+}, true);
+function beep(){
+  if (!actx) return;
+  try {
+    [0, 0.28].forEach(function(t){
+      var o = actx.createOscillator(), g = actx.createGain(), s = actx.currentTime + t;
+      o.type = "sine"; o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.35, s + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.2);
+      o.start(s); o.stop(s + 0.22);
+    });
+  } catch (e) {}
+}
+function sysNotify(list){
+  if (!("Notification" in window) || Notification.permission !== "granted" || !navigator.serviceWorker) return;
+  var a = list[0], more = list.length > 1 ? "（ほか" + (list.length - 1) + "件）" : "";
+  navigator.serviceWorker.ready.then(function(reg){
+    reg.showNotification("入院管理：" + KIND[a.kind], { body: "部屋" + a.room + " " + a.name + "：" + a.text + more, tag: "nyuin", renotify: true, icon: "icon-192.png", data: { url: "?room=" + encodeURIComponent(a.room) } });
+  }).catch(function(){});
+}
+function vAlerts(){
+  var list = activeAlerts();
+  if (!list.length) return "";
+  var h = '<div class="alerts" role="alert">';
+  list.slice(0, 3).forEach(function(a){
+    h += '<div class="al k-' + a.kind + '"><div><span class="kd">' + KIND[a.kind] + '</span><b>部屋' + esc(a.room) + ' ' + esc(a.name) + '</b>　' + esc(a.text) + '</div>'
+      + '<div class="al-b"><button data-room="' + esc(a.room) + '" data-tabgo="' + (a.kind === "投薬" ? "投薬" : "経過") + '">開く</button><button class="ok" data-alok="' + esc(a.k) + '">確認</button></div></div>';
+  });
+  if (list.length > 1) h += '<div class="al-more"><span>' + (list.length > 3 ? "ほか " + (list.length - 3) + " 件" : "") + '</span><button data-act="alAll">すべて確認（' + list.length + '件）</button></div>';
+  return h + '</div>';
+}
+var pendingRender = false;
+function safeRender(){
+  var a = document.activeElement;
+  if (S.sheet || S.photo || S.viewer || (a && /^(TEXTAREA|INPUT|SELECT)$/.test(a.tagName))) { pendingRender = true; return; }
+  render();
+}
+document.addEventListener("focusout", function(){ setTimeout(function(){ if (pendingRender && !S.sheet && !S.photo && !S.viewer) { pendingRender = false; var a = document.activeElement; if (!(a && /^(TEXTAREA|INPUT|SELECT)$/.test(a.tagName))) render(); } }, 300); });
+
 /* ---------- やること ---------- */
 function loadTodo(){ return api("todo").then(function(r){ if (!r.ok) throw new Error(r.error); S.todo = r; render(); }); }
 function vTodo(){
@@ -423,13 +587,19 @@ function sendHand(){
 function vMe(){
   var h = '<dl class="kv"><dt>ログイン中</dt><dd>' + esc(S.me.name) + '（' + esc(S.me.role || "スタッフ") + '）</dd></dl>';
   h += '<div class="links"><a class="lnk" href="' + API + '" target="_blank" rel="noopener">入院患者一覧（退院・部屋の移動）</a></div>';
+  var np = "Notification" in window ? Notification.permission : "none";
+  h += '<div class="card" style="margin-top:12px"><b>お知らせ</b><p class="hint" style="font-size:13px;margin-bottom:6px">アプリを開いている間、1分ごとに確認して、投薬・定時記録の30分以上の遅れと、気になる記録（元気×・食欲0・下痢・嘔吐）をお知らせします。</p>'
+    + '<div class="switch"><span>音で知らせる</span><button data-act="tgSnd" aria-pressed="' + (ls("snd") !== "off") + '">' + (ls("snd") !== "off" ? "オン" : "オフ") + '</button></div>'
+    + (navigator.vibrate ? '<div class="switch"><span>振動で知らせる</span><button data-act="tgVib" aria-pressed="' + (ls("vib") !== "off") + '">' + (ls("vib") !== "off" ? "オン" : "オフ") + '</button></div>' : '')
+    + (np === "none" ? '' : '<div class="switch"><span>別のアプリを見ている時もスマホの通知で知らせる<br><small style="color:var(--muted)">Androidで有効。iPhoneは画面を開いている時だけ</small></span>' + (np === "granted" ? '<button aria-pressed="true" disabled>許可済み</button>' : np === "denied" ? '<button disabled>ブロック中</button>' : '<button data-act="askNotif">許可する</button>') + '</div>')
+    + '<div class="switch"><span>確認済みにしたお知らせ</span><button data-act="alReset">元に戻す</button></div></div>';
   h += '<div class="card" style="margin-top:12px"><b>ホーム画面に追加すると便利です</b><p class="hint" style="font-size:13px">iPhone・iPad：Safari の共有ボタン →「ホーム画面に追加」<br>Android：Chrome のメニュー →「ホーム画面に追加」</p></div>';
   h += '<div class="links"><button class="btn sub" data-act="logout">ログアウト</button></div>';
   return frame("自分", h);
 }
 
 /* ---------- 画面の切り替え ---------- */
-function go(v){ S.view = v; S.sheet = null; if (v === "list") S.rooms = S.rooms; window.scrollTo(0, 0); render(); }
+function go(v){ S.view = v; S.sheet = null; S.photo = null; S.viewer = null; if (v === "list") S.rooms = S.rooms; window.scrollTo(0, 0); render(); }
 function render(){
   var h;
   if (!S.token || !S.me) h = vLogin();
@@ -437,8 +607,11 @@ function render(){
     var V = { list: vList, detail: vDetail, todo: vTodo, hand: vHand, me: vMe };
     h = (V[S.view] || vList)();
     if (S.sheet && S.view === "detail") h += vSheet();
+    if (S.photo && S.view === "detail") h += vPhotoSheet();
+    if (S.viewer && S.view === "detail") h += vViewer();
   }
   if (S.toast) h += '<div class="toast" role="status">' + esc(S.toast) + '</div>';
+  pendingRender = false;
   var y = window.scrollY, panel = document.querySelector(".panel"), py = panel ? panel.scrollTop : 0;
   $("root").innerHTML = h;
   window.scrollTo(0, y);
@@ -448,11 +621,13 @@ document.addEventListener("click", function(e){
   var b = e.target.closest("button,[data-act]");
   if (!b) return;
   var d = b.dataset;
-  if (d.act === "sheetBg" && e.target !== b) return;
+  if ((d.act === "sheetBg" || d.act === "photoBg") && e.target !== b) return;
+  if (d.alok) { markSeen([d.alok]); return; }
+  if (d.photo) { openViewer(d.photo); return; }
   if (d.login) { S.loginName = d.login; S.pin = ""; S.loginErr = ""; render(); return; }
   if (d.pin) { pinInput(d.pin); return; }
   if (d.go) { if (d.go === "list") S.rooms = S.rooms; go(d.go); if (d.go === "todo") { S.todo = null; render(); } if (d.go === "hand") { S.hand = null; render(); } return; }
-  if (d.room) { S.room = d.room; S.patient = null; S.tab = d.tabgo || "経過"; history.replaceState(null, "", "?room=" + encodeURIComponent(d.room)); go("detail"); return; }
+  if (d.room) { S.sheet = null; S.photo = null; S.viewer = null; S.room = d.room; S.patient = null; S.tab = d.tabgo || "経過"; history.replaceState(null, "", "?room=" + encodeURIComponent(d.room)); go("detail"); return; }
   if (d.tab) { S.tab = d.tab; render(); return; }
   if (d.med) { doMed(+d.med); return; }
   if (d.time) { keepSheetInputs(); S.sheet.time = d.time; render(); return; }
@@ -466,6 +641,16 @@ document.addEventListener("click", function(e){
     case "saveRec": saveRec(); break;
     case "sendHand": sendHand(); break;
     case "logout": logout(false); break;
+    case "openPhoto": openPhoto(); break;
+    case "closePhoto": case "photoBg": S.photo = null; render(); break;
+    case "savePhoto": savePhoto(); break;
+    case "closeViewer": S.viewer = null; render(); break;
+    case "delPhoto": delPhoto(); break;
+    case "alAll": markSeen(activeAlerts().map(function(a){ return a.k; })); break;
+    case "alReset": ls("seen", null); rung = {}; toast("お知らせを元に戻しました"); break;
+    case "tgSnd": ls("snd", ls("snd") === "off" ? "on" : "off"); if (ls("snd") !== "off") beep(); render(); break;
+    case "tgVib": ls("vib", ls("vib") === "off" ? "on" : "off"); render(); break;
+    case "askNotif": Notification.requestPermission().then(function(){ render(); }); break;
   }
 });
 document.addEventListener("input", function(e){
@@ -479,14 +664,16 @@ function refresh(){
   else if (S.view === "hand") { S.hand = null; render(); }
 }
 window.addEventListener("popstate", function(){ go("list"); });
-// 画面を開いたままでも1分ごとに最新に（入力中は更新しない）
+// 開いている間は1分ごとに確認（お知らせ用。入力中は画面を描き直さない）
 setInterval(function(){
-  if (document.hidden || !S.token || S.sheet || S.busy) return;
-  if (S.view === "list") loadList().catch(function(){});
-  else if (S.view === "todo") loadTodo().catch(function(){});
+  if (!S.token || !S.me || S.busy) return;
+  loadList(true).catch(function(){});
+  if (S.view === "todo" && !document.hidden) loadTodo().catch(function(){});
 }, 60000);
-document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.token && !S.sheet) refresh(); });
+document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.token && !S.sheet && !S.photo) { refresh(); if (S.view !== "list") loadList(true).catch(function(){}); } });
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
 render();
+if (S.token && S.me && S.view !== "list") loadList(true).catch(function(){});
 })();
 </script>
 </body>
