@@ -34,6 +34,8 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
 button,input,textarea,select{font:inherit;color:inherit}
+html{touch-action:manipulation}
+input,textarea,select{font-size:16px!important}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 [hidden]{display:none!important}
@@ -177,6 +179,42 @@ textarea{min-height:80px}
 .switch button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 12px;font-size:13px;font-weight:700;white-space:nowrap}
 .switch button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px}
+
+/* 横長画面（iPad 横向きなど） */
+.only-wide{display:none}
+@media (min-width: 900px){
+  .only-wide{display:block}
+  body{padding-left:92px}
+  .app{max-width:1240px}
+  .appbar{padding-left:24px;padding-right:24px}
+  .alerts{padding:10px 24px 0;grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+  .al-more{grid-column:1/-1}
+  .main{padding:16px 24px 110px}
+  .main.narrow{max-width:820px}
+  .tabbar{left:0;top:0;bottom:0;right:auto;width:92px;border-top:0;border-right:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 16px) 6px 16px}
+  .tabbar .in{display:flex;flex-direction:column;gap:6px;max-width:none}
+  .tabbar button{padding:12px 0;font-size:12.5px;border-radius:12px}
+  .tabbar button[aria-current="page"]{background:var(--accent-soft)}
+  .tabbar .badge{left:calc(50% + 8px);top:6px}
+  .fabs{right:28px;bottom:28px}
+  .toast{bottom:28px;left:calc(50% + 46px)}
+  .summary{grid-template-columns:repeat(3,minmax(0,220px))}
+  .pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+  .pts .pt{margin-bottom:0}
+  .dgrid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+  .dside{position:sticky;top:72px}
+  .dmain .seg{margin-top:0}
+  .side-kv{margin-top:12px}
+  .ph-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .sheet{align-items:center;padding:24px}
+  .panel{max-width:920px;border-radius:22px;max-height:94%}
+  .grps{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+  .opt{flex:0 1 auto;min-width:72px;padding:12px 14px}
+  .preview{max-height:52vh}
+  .viewer{left:0}
+  .viewer .vb{flex-direction:row}
+  .viewer .vbtn{max-width:420px}
+}
 </style>
 </head>
 <body>
@@ -185,6 +223,7 @@ textarea{min-height:80px}
 <script>
 (function(){
 "use strict";
+var VER = "2026-10-17a";
 var API = "https://script.google.com/macros/s/AKfycby6TkGE9BzoXnl8KNizC9Kw8Jt4rpPLwHs5SrqjEguwWM-0O31orwnZlrsYiWFZhWnmcw/exec";
 var $ = function(id){ return document.getElementById(id); };
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -270,7 +309,7 @@ function lateTotal(){ var n = 0; (S.rooms || []).forEach(function(r){ n += (r.me
 function frame(title, body, opt){
   opt = opt || {};
   var h = '<div class="app"><header class="appbar">' + (opt.back ? '<button class="back" data-go="list" aria-label="入院一覧へ戻る">‹</button>' : '')
-    + '<h1>' + esc(title) + '</h1>' + (opt.right || '') + '</header>' + vAlerts() + '<main class="main">' + body + '</main></div>';
+    + '<h1>' + esc(title) + '</h1>' + (opt.right || '') + '</header>' + vAlerts() + '<main class="main' + (opt.wide ? '' : ' narrow') + '">' + body + '</main></div>';
   if (opt.fab) h += '<div class="fabs"><button class="fab alt" data-act="openPhoto">' + CAM + '写真</button><button class="fab" data-act="openRec">＋ 記録</button></div>';
   var tabs = [["list","入院一覧"],["todo","やること"],["hand","申し送り"],["me","自分"]];
   h += '<nav class="tabbar"><div class="in">' + tabs.map(function(t){
@@ -293,6 +332,7 @@ function vList(){
   var h = '<div class="summary"><div><b>' + occ.length + '</b><span>入院中</span></div><div><b' + (medLate ? ' style="color:var(--crit)"' : '') + '>' + medLate + '</b><span>遅れている投薬</span></div><div><b>' + recDue + '</b><span>定時記録が残っている</span></div></div>';
   h += '<p class="sec">入院中（' + esc(S.at) + ' 時点）</p>';
   if (!occ.length) h += '<div class="msg m-info">入院中の患者はいません</div>';
+  h += '<div class="pts">';
   occ.forEach(function(r){
     var c = [];
     if (!r.dayUrl) c.push(["c-warn","日中シートなし"]);
@@ -306,8 +346,9 @@ function vList(){
     h += '<button class="pt" data-room="' + esc(r.room) + '"><div class="rm">' + esc(r.room) + '</div><div><div class="nm">' + esc(r.name || "（名前未登録）") + '</div>'
       + (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '<div class="chips">' + c.map(function(x){ return '<span class="chip ' + x[0] + '">' + esc(x[1]) + '</span>'; }).join("") + '</div></div></button>';
   });
+  h += '</div>';
   if (empty.length) h += '<p class="sec">空室</p><div class="empty-rooms">' + empty.map(function(r){ return "部屋 " + esc(r.room); }).join("　") + '</div>';
-  return frame("入院一覧", h, { right: REFRESH });
+  return frame("入院一覧", h, { right: REFRESH, wide: true });
 }
 
 /* ---------- 患者の詳細 ---------- */
@@ -325,6 +366,9 @@ function vDetail(){
     h += links(p);
     return frame("部屋 " + p.room, h, { back: true });
   }
+  var side = (p.inst || []).filter(function(x){ return ["本日の目標","特に注意すること","安静度","食事指示"].indexOf(x[0]) > -1; });
+  h += side.length ? '<dl class="kv side-kv only-wide">' + side.map(function(x){ return '<dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd>'; }).join("") + '</dl>' : '';
+  h = '<div class="dgrid"><aside class="dside">' + h + '</aside><div class="dmain">';
   if (p.stale) h += '<div class="msg m-ng" style="margin-top:10px">本日のシートがまだ作成されていません。' + esc(p.dayDate) + ' のシートを表示しています（記録もこのシートに入ります）。</div>';
   var tabs = ["経過","指示","投薬"];
   h += '<div class="seg" role="tablist">' + tabs.map(function(t){
@@ -354,7 +398,8 @@ function vDetail(){
     });
     if ((p.meds || []).length) h += '<p class="hint">「実施」を押すと、今の時刻とあなたの名前がシートの投薬表に入ります。</p>';
   }
-  return frame("部屋 " + p.room, h, { back: true, fab: S.tab === "経過", right: REFRESH });
+  h += '</div></div>';
+  return frame("部屋 " + p.room, h, { back: true, fab: S.tab === "経過", right: REFRESH, wide: true });
 }
 function links(p){
   var h = '<div class="links">';
@@ -385,11 +430,13 @@ function vSheet(){
   var s = S.sheet, p = S.patient;
   var h = '<div class="sheet" data-act="sheetBg"><div class="panel" role="dialog" aria-label="状態を記録"><h2>' + esc(p.name) + ' の状態を記録</h2>';
   h += '<div class="grp"><p>時刻</p><div class="opts">' + s.times.concat([s.now]).map(function(t, i){ var label = i === s.times.length ? "今（" + t + "）" : t; return '<button class="opt" data-time="' + esc(t) + '" aria-pressed="' + (s.time === t) + '">' + label + '</button>'; }).join("") + '</div><p class="hint">定時の記録は時刻を、臨時の記録は「今」を選んでください</p></div>';
+  h += '<div class="grps">';
   G.forEach(function(g){
     h += '<div class="grp"><p>' + g[0] + '</p><div class="opts">' + g[1].map(function(o){ return '<button class="opt" data-g="' + g[0] + '" data-v="' + esc(o) + '" aria-pressed="' + (s.pick[g[0]] === o) + '">' + esc(o) + '</button>'; }).join("") + '</div>';
     if (g[0] === "排尿") h += '<div class="row"><span>尿量（測定時）</span><input type="number" id="ml" inputmode="numeric" placeholder="mL" value="' + esc(s.ml) + '"></div>';
     h += '</div>';
   });
+  h += '</div>';
   h += '<div class="grp"><p>処置・ケア／特記事項</p><textarea id="memo" placeholder="キーボードのマイクで音声入力できます">' + esc(s.memo) + '</textarea></div>';
   h += '<p class="hint">記録者：' + esc(S.me ? S.me.name : "") + '（自動）</p>';
   h += '<div class="btns"><button class="btn sub" data-act="closeRec">やめる</button><button class="btn pri" data-act="saveRec"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? "保存中…" : "記録する") + '</button></div></div></div>';
@@ -672,6 +719,20 @@ setInterval(function(){
 }, 60000);
 document.addEventListener("visibilitychange", function(){ if (!document.hidden && S.token && !S.sheet && !S.photo) { refresh(); if (S.view !== "list") loadList(true).catch(function(){}); } });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
+// 新しい版が出ていたら自動で読み込み直す（入力中は待つ・10分に1回まで）
+var lastVerCheck = 0;
+function checkVersion(){
+  if (Date.now() - lastVerCheck < 600000) return;
+  lastVerCheck = Date.now();
+  fetch("index.html?v=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.text(); }).then(function(t){
+    var m = t.match(/var VER = "([^"]+)"/);
+    if (!m || m[1] === VER || S.sheet || S.photo || S.busy) return;
+    if (ls("reloadedFor") === m[1]) return;
+    ls("reloadedFor", m[1]); location.reload();
+  }).catch(function(){});
+}
+checkVersion();
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) checkVersion(); });
 render();
 if (S.token && S.me && S.view !== "list") loadList(true).catch(function(){});
 })();
